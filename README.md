@@ -12,4 +12,6 @@ werkzeug==2.2.2
 
 uruchomienie serwera: flask run
 
-otrzymanie predykcji: python request.py 'path to img' | python request.py mdb005.pgm
+otrzymanie predykcji: python request.py 'path to img' 
+
+python request.py mdb005.pgm
