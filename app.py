@@ -12,7 +12,7 @@ app = Flask(__name__)
 print(torchvision.__version__)
 print(torch.__version__)
 
-# model_path = 'resnet50_mias_29092023'
+model_path = 'resnet50_mias_29092023'
 num_classes = 7
 model = torchvision.models.detection.fasterrcnn_resnet50_fpn()
 in_features = model.roi_heads.box_predictor.cls_score.in_features
@@ -52,18 +52,23 @@ def transform_image(image):
 def get_prediction(image):
     tensor = transform_image(image)
     outputs = model(tensor)
-    boxes = str(outputs[0]['boxes'][0].tolist())
+    x = outputs[0]['boxes'][0][0] + (outputs[0]['boxes'][0][2] - outputs[0]['boxes'][0][0]) / 2
+    y = outputs[0]['boxes'][0][1] + (outputs[0]['boxes'][0][3] - outputs[0]['boxes'][0][1]) / 2
+    r = ((outputs[0]['boxes'][0][2] - outputs[0]['boxes'][0][0]) / 2) 
+    x_point = str(int(x))
+    y_point = str(int(y))
+    radious = str(int(r))
     labels = str(annotations[int(outputs[0]['labels'][0])])
     score = str(float(outputs[0]['scores'][0]))
-    return boxes, labels, score
+    return x_point, y_point, radious, labels, score
 
 
 @app.route('/predict', methods=['POST'])
 def predict():
     if request.method == 'POST':
         img = request.files['file'].read()
-        bbox, labels, score = get_prediction(img)
-        return jsonify({'bbox': bbox, 'label': labels, 'score':score})
+        x_point, y_point, radious, labels, score = get_prediction(img)
+        return jsonify({'x_point': x_point,'y_point': y_point,'radious': radious , 'label': labels, 'score':score})
 
 
 if __name__ == '__main__':
