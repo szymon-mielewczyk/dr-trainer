@@ -65,13 +65,17 @@ def get_prediction(image):
 @app.route('/api/ai/predict', methods=['POST'])
 def predict():
     if request.method == 'POST':
-        img_name = str(request.files['imageName'].read(), encoding='utf-8')
-        image_id = str(request.files['imageId'].read(), encoding='utf-8')
+        json = request.get_json()
+        img_name = str(json.get('imageName'))
+        img_id = str(json.get('imageId'))
+        print(img_name)
+        print(img_id)
+        print('a')
         image = ski_io.imread(img_name)
         x_point, y_point, radius, label, score = get_prediction(image)
         # todo add score threshold
         return jsonify({
-            "imageId": image_id,
+            "imageId": img_id,
             "imageName": img_name,
             "medicalParams": {
                 "abnormalityClass": label
