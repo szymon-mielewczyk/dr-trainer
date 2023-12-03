@@ -1,24 +1,16 @@
 import io
+import json
 import torch
 import torchvision
+import numpy
+from torchvision import models
 import torchvision.transforms as transforms
 from PIL import Image
 from flask import Flask, jsonify, request
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 import cv2
-
+from skimage import io as ski_io
 app = Flask(__name__)
-
-print(torchvision.__version__)
-print(torch.__version__)
-
-model_path = 'resnet50_mias_29092023'
-num_classes = 7
-model = torchvision.models.detection.fasterrcnn_resnet50_fpn()
-in_features = model.roi_heads.box_predictor.cls_score.in_features
-model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
-# model.load_state_dict(torch.load(model_path))
-model.eval()
 
 annotations = {
             'CALC': 1,
@@ -35,14 +27,21 @@ annotations = {
              6: 'ASYM',
         }
 
+
+print(torchvision.__version__)
+print(torch.__version__)
+
+# model_path = 'resnet50_mias_26092023'
+num_classes = 7
+model = torchvision.models.detection.fasterrcnn_resnet50_fpn()
+in_features = model.roi_heads.box_predictor.cls_score.in_features
+model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
+# model.load_state_dict(torch.load(model_path))
+model.eval()
+
+
 def transform_image(image):
-    image = Image.open(io.BytesIO(image))
-    my_transforms = transforms.Compose([transforms.ToTensor(),
-                                        transforms.Resize(1024,antialias=True)])
-    tensor = my_transforms(image).unsqueeze(0)
-    image = tensor.numpy()
-    if image.shape == (1,1,1024,1024):
-        image = cv2.merge((image,image,image))
+    image = cv2.merge((image,image,image))
     tensor = torch.tensor(image, dtype=torch.float32)
     tensor = torch.reshape(tensor, (1,3,1024,1024))
     tensor = tensor / 255
@@ -57,18 +56,34 @@ def get_prediction(image):
     r = ((outputs[0]['boxes'][0][2] - outputs[0]['boxes'][0][0]) / 2) 
     x_point = str(int(x))
     y_point = str(int(y))
-    radious = str(int(r))
+    radius = str(int(r))
     labels = str(annotations[int(outputs[0]['labels'][0])])
     score = str(float(outputs[0]['scores'][0]))
-    return x_point, y_point, radious, labels, score
+    return x_point, y_point, radius, labels, score
 
 
 @app.route('/predict', methods=['POST'])
 def predict():
     if request.method == 'POST':
-        img = request.files['file'].read()
-        x_point, y_point, radious, labels, score = get_prediction(img)
-        return jsonify({'x_point': x_point,'y_point': y_point,'radious': radious , 'label': labels, 'score':score})
+        img_name = str(request.files['imageName'].read(), encoding='utf-8')
+        image_id = str(request.files['imageId'].read(), encoding='utf-8')
+        image = ski_io.imread(img_name)
+        x_point, y_point, radius, label, score = get_prediction(image)
+        # todo add score threshold
+        return jsonify({
+            "imageId": image_id,
+            "imageName": img_name,
+            "mediaclParams": {
+                "abnormalityClass": label
+            },
+            "markedRegions": [
+                {
+                    "x": x_point,
+                    "y": y_point,
+                    "radius": radius
+                }
+            ]
+        })
 
 
 if __name__ == '__main__':
