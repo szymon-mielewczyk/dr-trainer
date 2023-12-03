@@ -62,7 +62,7 @@ def get_prediction(image):
     return x_point, y_point, radius, labels, score
 
 
-@app.route('/predict', methods=['POST'])
+@app.route('/api/ai/predict', methods=['POST'])
 def predict():
     if request.method == 'POST':
         img_name = str(request.files['imageName'].read(), encoding='utf-8')
