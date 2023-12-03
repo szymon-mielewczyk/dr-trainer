@@ -73,7 +73,7 @@ def predict():
         return jsonify({
             "imageId": image_id,
             "imageName": img_name,
-            "mediaclParams": {
+            "medicalParams": {
                 "abnormalityClass": label
             },
             "markedRegions": [
